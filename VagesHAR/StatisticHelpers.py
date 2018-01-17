@@ -16,6 +16,7 @@ from hunt_dataset_definitions import number_to_label_dict
 
 matplotlib.use("Agg")  # Set non-interactive background. Must precede pyplot import.
 import matplotlib.pyplot as plt
+import pandas as pd
 
 from definitions import PROJECT_ROOT
 
@@ -46,12 +47,15 @@ def save_confusion_matrix_image(matrix, classes, normalize=False, title='Confusi
     for i, j in itertools.product(range(matrix.shape[0]), range(matrix.shape[1])):
         plt.text(j, i, matrix[i, j],
                  horizontalalignment="center",
-                 color="black")
+                 color="black", fontsize = 8)
 
     plt.tight_layout()
     plt.ylabel('True label')
-    plt.xlabel('Predicted label')
-    plt.savefig(save_path)
+    plt.xlabel('Predicted label\n')
+    plt.tight_layout()
+    fig = matplotlib.pyplot.gcf()
+    fig.set_size_inches(18.5, 10.5)
+    plt.savefig(save_path, dpi = 100)
 
 
 def specificity_score(y_true, y_pred):
@@ -75,11 +79,21 @@ def generate_and_save_statistics_json(y_true, y_pred, number_to_class_name_dict,
     precision, recall, f_score, support = precision_recall_fscore_support(y_true, y_pred)
     specificity = specificity_score(y_true, y_pred)
     accuracy = accuracy_score(y_true, y_pred)
+
+    print("Precision: ", precision)
+    print("Recall: ", recall)
+    print("F score: ", f_score)
+    print("Support: ", support)
+    print("Specificity: ", specificity)
+
+
     print(os.path.split(save_path)[1], accuracy)
 
     occurring_classes = sorted(list(set(y_true)))
 
     classes = [number_to_class_name_dict[c] for c in occurring_classes]
+
+
 
     save_statistics_json(accuracy, classes, f_score, precision, recall, save_path, support, specificity)
 
@@ -98,14 +112,18 @@ def save_statistics_json(accuracy, classes, f_score, precision, recall, save_pat
         "support": support_dict,
         "accuracy": accuracy
     }
-    with open(save_path, "w") as f:
-        json.dump(d, f)
+
+    print("Statistics!")
+    print(d)
+    #with open(save_path, "w") as f:
+    #    json.dump(d, f)
 
 
 def generate_and_save_confusion_matrix(y_true, y_pred, number_to_label_dict, save_path, title=""):
     matrix = confusion_matrix(y_true, y_pred)
     original_labels = set(y_true)
     all_occurring_classes = set(y_pred) | original_labels
+    #print ("All occuring classes: !!!!!!!", all_occurring_classes)
     class_names = [number_to_label_dict[x] for x in sorted(list(all_occurring_classes))]
     save_confusion_matrix_image(matrix, class_names, save_path=save_path, title=title)
 
@@ -330,6 +348,35 @@ def get_score_dict(path):
 
         score_dict[sub_test] = sub_test_scores
     return score_dict
+
+
+#USed primarilyfor plotting the activity distribution from a labeled set of activities
+def plot_data_distribution(labels):
+
+    data_frame = pd.DataFrame(labels["006"])
+
+    #fig = plt.figure
+    #ploting = data_frame.plot.hist()
+    #fig = ploting.get_figure()
+    #fig.savefig("histogram_006.png")
+
+    plt.hist(labels["006"])
+    plt.title("Gaussian Histogram")
+    plt.xlabel("Value")
+    plt.ylabel("Frequency")
+
+    fig = plt.gcf()
+    fig.savefig("histogram_006.png")
+
+
+   # activity_counts = {}
+  #  for activity in labels:
+  #      if activity in activity_counts.keys():
+  #          activity_counts[activity] += 1
+  #      else:
+  #          activity_counts[activity] = 1
+  #  return activity_counts
+
 
 
 if __name__ == "__main__":

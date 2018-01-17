@@ -22,7 +22,7 @@ def average_columns_and_write_to_file(data_frame, columns, file_path, with_heade
 
     while window_start < max_index_to_keep:
         if not window_start // window_size % 100000:
-            print window_start
+            print(window_start)
         window_end = min(window_start + window_size, max_index_to_keep)
         means = data_frame_with_selected_columns[window_start:window_end].mean()
         averages.append(means.to_frame().transpose())

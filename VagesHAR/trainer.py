@@ -78,11 +78,15 @@ def train_model_and_pickle(x, y, path, n_estimators=50):
     print("path: ", path)
 
 
-
 def pickle_feature_indexes(features_top_percentage, feature_indexes, path):
+    pickle_list = feature_indexes
     with open(path, "wb") as f:
-        pickle.dump("features_top_percentage + feature_indexes", f)
+        pickle.dump(pickle_list, f)
     print("path: ", path)
+
+
+
+
 
 def load_features_and_labels(lb_file, th_file, label_file, raw_sampling_frequency, keep_rate, keep_transitions):
     print("Loading", lb_file, "and", th_file)
@@ -117,7 +121,7 @@ def load_features_and_labels(lb_file, th_file, label_file, raw_sampling_frequenc
                                                              sampling_rate=resampled_sampling_frequency)
 
     features = np.hstack([lb_windows, th_windows])
-    #print("Number of feature returnet from ACTIVITY Chain: ", features.shape)
+    print("Number of feature returnet from ACTIVITY Chain: ", features.shape)
     #print("Shape lb_windows ", lb_windows.shape)
     #print("Shape th_windows ", th_windows.shape)
 
@@ -157,14 +161,6 @@ def load_features_and_labels(lb_file, th_file, label_file, raw_sampling_frequenc
                         #print("postTransitionActivity ",postTransitionActivity)
                         if((preTransitionActivity, postTransitionActivity) in transitionDict):
                             transition_type = transitionDict.get((preTransitionActivity, postTransitionActivity))
-                            #if((preTransitionActivity,postTransitionActivity) == (1,6)):
-                                #print("                     Transition 93 occured")
-                            #elif((preTransitionActivity,postTransitionActivity) == (6,7)):
-                                #print("                     Transition 94 occured")
-                            #elif((preTransitionActivity, postTransitionActivity) == (7,6)):
-                                #print("                     Transition 91 occured")
-                            #else:
-                                #print("                     Transition 92 occured")
                         else:
                             transition_type = 9
                         for j in range(transitionCounter):
@@ -343,13 +339,17 @@ def train_with_keep_rate(subject_ids, subject_files, window_length, sampling_fre
 
     if (features_top_percentage == 1):
 
-        model_path = os.path.join(project_root, "healthy_" + str(window_length) + "s_model_" + str(hz) + "hz_reduced.pickle")
+        model_path = os.path.join(project_root, "healthy_" + str(window_length) + "s_model_" + str(hz) + "hz.pickle")
+
     else:
         train_X = getFeatures(train_X, indexes)
         model_path = os.path.join(project_root, "healthy_" + str(window_length) + "s_model_" + str(hz) + "hz_reduced.pickle")
+        indexes_path = os.path.join(project_root,
+                                    "indexes_" + str(features_top_percentage) + "_percent" + "_healthy_" + str(
+                                        window_length) + "s_model_" + str(hz) + "hz_reduced.pickle")
+        pickle_feature_indexes(features_top_percentage, indexes, indexes_path)
 
     train_model_and_pickle(train_X, train_y, model_path, keep_rate)
-
 
 
 
@@ -372,6 +372,7 @@ def getFeatureIndexes(feature_importances, features_top_percentage):
         else:
             break
     #print("Number of features extracted: ", len(feature_indexes))
+    print("Number of features ", len(feature_indexes))
     return feature_indexes
 
 
@@ -387,18 +388,14 @@ def getFeatures(data, indexes):
 if __name__ == "__main__":
     warnings.filterwarnings('ignore')
 
+
+    #Trainer parameters
     window_length = 3.0
     train_overlap = 0.8
     sampling_frequency = 100
     n_jobs = -1
-
-
-    #Introduce transitions
     keep_transitions = 1
-    #Reduce feature set
-    features_top_percentage = 1
-
-    #features_top_percentage = 1
+    features_top_percentage = 0.4
 
     module_root = os.path.dirname(os.path.abspath(__file__))
     project_root = os.path.dirname(module_root)
@@ -474,7 +471,7 @@ if __name__ == "__main__":
 
 
     #for keep_rate in reversed([100, 50, 25, 20, 10, 5, 4, 2]):
-    for keep_rate in reversed([1]):
+    for keep_rate in reversed([100]):
         print("Keep rate:", keep_rate)
         train_with_keep_rate(subject_ids, subject_files, window_length, sampling_frequency, keep_rate, keep_transitions, features_top_percentage)
 

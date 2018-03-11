@@ -72,7 +72,7 @@ def getFeatureIndexes(feature_importances, features_top_percentage):
     feature_threshold = feature_importances_sorted[-number_of_features]
     print("Feature threshold: ", feature_threshold)
 
-    feature_indexes = []
+    feature_exes = []
     for i in range(len(feature_importances)):
         if len(feature_indexes) < number_of_features:
             print("Feature importance: ", feature_importances[i], " feature threshold: ", feature_threshold)

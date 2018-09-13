@@ -35,11 +35,13 @@ def save_confusion_matrix_image(matrix, classes, normalize=False, title='Confusi
     plt.clf()
     plt.imshow(shade_matrix, interpolation='nearest', cmap=cmap)
     plt.title(title)
-    plt.colorbar()
+    #plt.colorbar()
+    clb = plt.colorbar()
+    clb.ax.tick_params(labelsize=15)
     tick_marks = np.arange(len(classes))
-    plt.tick_params(labelsize=7)
-    plt.xticks(tick_marks, classes, rotation=45)
-    plt.yticks(tick_marks, classes)
+    plt.tick_params(labelsize=15)
+    plt.xticks(tick_marks, classes, rotation=45, fontsize = 15)
+    plt.yticks(tick_marks, classes, fontsize = 15)
 
     if normalize:
         matrix = matrix.astype('float') / matrix.sum(axis=1)[:, np.newaxis]
@@ -47,15 +49,30 @@ def save_confusion_matrix_image(matrix, classes, normalize=False, title='Confusi
     for i, j in itertools.product(range(matrix.shape[0]), range(matrix.shape[1])):
         plt.text(j, i, matrix[i, j],
                  horizontalalignment="center",
-                 color="black", fontsize = 8)
+                 color="black", fontsize = 15)
+
 
     plt.tight_layout()
-    plt.ylabel('True label')
-    plt.xlabel('Predicted label\n')
+    plt.ylabel('True label\n', fontsize = 20)
+    plt.xlabel('\nPredicted label', fontsize = 20)
     plt.tight_layout()
     fig = matplotlib.pyplot.gcf()
-    fig.set_size_inches(18.5, 10.5)
-    plt.savefig(save_path, dpi = 100)
+    fig.set_size_inches(12, 8.5)
+    plt.subplots_adjust(right = 0.9)
+    plt.savefig(save_path, dpi=120)
+
+
+
+    #plt.tight_layout()
+    #plt.ylabel('True label')
+    #plt.xlabel('Predicted label\n')
+    #plt.tight_layout()
+    #fig = matplotlib.pyplot.gcf()
+    #fig.set_size_inches(18.5, 10.5)
+    #plt.savefig(save_path, dpi = 100)
+
+
+
 
 
 def specificity_score(y_true, y_pred):
@@ -74,6 +91,57 @@ def specificity_score(y_true, y_pred):
 
     return specificity_list
 
+
+
+def generate_statistics(y_true, y_pred, number_to_class_name_dict, feature_count, indexes):
+    #Statistics for all subjects in the dataset:
+
+    precision, recall, f_score, support = precision_recall_fscore_support(y_true, y_pred)
+    specificity = specificity_score(y_true, y_pred)
+    accuracy = accuracy_score(y_true, y_pred)
+
+    print("Precision: ", precision)
+    print("Recall: ", recall)
+    print("F score: ", f_score)
+    print("Support: ", support)
+    print("Specificity: ", specificity)
+
+
+    #Statistics for each activity:
+
+    occurring_classes = sorted(list(set(y_true)))
+    classes = [number_to_class_name_dict[c] for c in occurring_classes]
+
+    recall_dict = dict([(c, s) for c, s in zip(classes, recall)])
+    precision_dict = dict([(c, s) for c, s in zip(classes, precision)])
+    f_score_dict = dict([(c, s) for c, s in zip(classes, f_score)])
+    support_dict = dict([(c, s) for c, s in zip(classes, support)])
+    specificity_dict = dict([(c, s) for c, s in zip(classes, specificity)])
+    d = {"model_feature_count": feature_count,
+        "indexes": indexes,
+        "accuracy": accuracy,
+        "recall": recall_dict,
+        "precision": precision_dict,
+        "specificity": specificity_dict,
+        "f_score": f_score_dict,
+        "support": support_dict,
+
+    }
+
+    #print(d)
+    for key in d.keys():
+    #    print("Key: ", key)
+        if(isinstance(d[key], dict)):
+            for value in d[key].keys():
+                #print(value)
+                #print(type(value))
+                #print(type(d[key][value]))
+                if (isinstance(d[key][value], np.int64)):
+                    d[key][value] = int(d[key][value])
+                    # d[key][key]
+
+    #print(d)
+    return d
 
 def generate_and_save_statistics_json(y_true, y_pred, number_to_class_name_dict, save_path):
     precision, recall, f_score, support = precision_recall_fscore_support(y_true, y_pred)
@@ -98,6 +166,9 @@ def generate_and_save_statistics_json(y_true, y_pred, number_to_class_name_dict,
     save_statistics_json(accuracy, classes, f_score, precision, recall, save_path, support, specificity)
 
 
+
+
+
 def save_statistics_json(accuracy, classes, f_score, precision, recall, save_path, support, specificity):
     recall_dict = dict([(c, s) for c, s in zip(classes, recall)])
     precision_dict = dict([(c, s) for c, s in zip(classes, precision)])
@@ -117,6 +188,7 @@ def save_statistics_json(accuracy, classes, f_score, precision, recall, save_pat
     print(d)
     #with open(save_path, "w") as f:
     #    json.dump(d, f)
+
 
 
 def generate_and_save_confusion_matrix(y_true, y_pred, number_to_label_dict, save_path, title=""):

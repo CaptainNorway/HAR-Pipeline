@@ -18,7 +18,32 @@ from acrechain import load_accelerometer_csv, load_label_csv, segment_accelerati
 
 from VagesHAR.StatisticHelpers import generate_and_save_confusion_matrix, plot_data_distribution, generate_and_save_statistics_json
 
+relabel_dict = {
+    # 3: 9,
+    4: 1,
+    5: 1,
+    11: 10,
+    14: 13,
+    20: 8,
+    21: 8,
+    22: 8,
+    23: 8
+}
+keep_set = {1, 2, 6, 7, 8, 10, 13}
 
+window_length = 3.0
+train_overlap = 0.8
+sampling_frequency = 100
+n_jobs = -1
+keep_transitions = 0
+features_top_percentage = 1
+
+module_root = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(module_root)
+data_set_folder = os.path.join(project_root, "DATA")
+
+
+warnings.filterwarnings('ignore')
 
 #List of all activities in the labeled data-set.
 label_to_number_dict = {
@@ -67,6 +92,7 @@ def find_majority_activity(window):
     counts = Counter(window)
     top = counts.most_common(1)[0][0]
     return top
+
 
 
 def train_model_and_pickle(x, y, path, n_estimators=50):
@@ -354,7 +380,7 @@ def train_with_keep_rate(subject_ids, subject_files, window_length, sampling_fre
 
 
 
-
+#Returns the indexes of the features with feature importance values greater than the feature importance for the feature below the top percentage#
 def getFeatureIndexes(feature_importances, features_top_percentage):
     number_of_features = int(features_top_percentage*len(feature_importances))
     #print("Number of features wanted: ", number_of_features)
@@ -376,106 +402,11 @@ def getFeatureIndexes(feature_importances, features_top_percentage):
     return feature_indexes
 
 
+
+#Returns the features of a data set which corresponding to the feature indexes#
 def getFeatures(data, indexes):
     #print("Data set shape before reshape: ", data.shape)
     data = data[:, indexes]
     #print("Data set shape afer reshape ", data.shape)
     return data
-
-
-
-
-if __name__ == "__main__":
-    warnings.filterwarnings('ignore')
-
-
-    #Trainer parameters
-    window_length = 3.0
-    train_overlap = 0.8
-    sampling_frequency = 100
-    n_jobs = -1
-    keep_transitions = 1
-    features_top_percentage = 0.4
-
-    module_root = os.path.dirname(os.path.abspath(__file__))
-    project_root = os.path.dirname(module_root)
-    data_set_folder = os.path.join(project_root, "DATA")
-
-
-
-
-
-
-
-    csvs_we_are_looking_for = ["LOWERBACK", "THIGH", "labels"]
-
-    subject_files = []
-    for r, ds, fs in os.walk(data_set_folder):
-        found_csvs = [False] * len(csvs_we_are_looking_for)
-
-        for f in fs:
-            print("f", f)
-            for i, csv_string in enumerate(csvs_we_are_looking_for):
-                if csv_string in f:
-                    found_csvs[i] = os.path.join(r, f)
-
-        if False not in found_csvs:
-            subject_files.append(found_csvs)
-
-
-
-    subject_files.sort()
-
-
-
-
-    subject_ids = [os.path.basename(os.path.dirname(s)) for s, _, _ in subject_files]
-
-    print("subject ids: ", subject_ids)
-    print("subject files", subject_files)
-
-    print("label path subject 1: ", subject_files[0][2])
-    labe1 = load_label_csv(subject_files[0][2])
-    print("Len labe1: ", len(labe1))
-    #Plot activity distribution
-    #label_files = {}
-    #label_data = {}
-    #for i in range(len(subject_ids)):
-    #    label_files[subject_ids[i]] = subject_files[i][2]
-    #    label_data[subject_ids[i]] = load_label_csv(label_files[subject_ids[i]])
-    #plot_data_distribution(label_data)
-
-
-    #Not needed
-    #bad_performing_subjects = ["001", "002", "003", "004", "005"]
-    #for bps_id in bad_performing_subjects:
-    #    idx = subject_ids.index(bps_id)
-    #    subject_ids.pop(idx)
-    #    subject_files.pop(idx)
-
-    #print("subject_ids after removing bad performing subjects", subject_ids)
-    #print("subject files after removing bad performing subjects", subject_files)
-
-
-    #The activities we are relabeling
-    relabel_dict = {
-        #3: 9,
-        4: 1,
-        5: 1,
-        11: 10,
-        14: 13,
-        20: 8,
-        21: 8,
-        22: 8,
-        23: 8
-    }
-    keep_set = {1, 2, 6, 7, 8, 10, 13}
-
-
-
-    #for keep_rate in reversed([100, 50, 25, 20, 10, 5, 4, 2]):
-    for keep_rate in reversed([100]):
-        print("Keep rate:", keep_rate)
-        train_with_keep_rate(subject_ids, subject_files, window_length, sampling_frequency, keep_rate, keep_transitions, features_top_percentage)
-
 

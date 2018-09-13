@@ -5,19 +5,31 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.font_manager import FontProperties
+from collections import Counter
+
 
 
 
 module_root = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(module_root)
-data_set_folder = os.path.join(project_root, "DATA")
+
+#Dataset paths
+
+
+data_set_folder = os.path.join(project_root, "DATA") #Trondheim Free Living (TFL) dataset
+data_tcs = os.path.join(project_root, "DATA_TCS") #Trondheim Chronic Stroke (TCS dataset
+data_nwt = os.path.join(project_root, "DATA_SNT") #No-wear Time
+plots_folder = os.path.join(project_root, "PLOTS")
 
 subject6path = os.path.join(data_set_folder, "006")
 label6path = os.path.join(subject6path, "006_labels.csv")
 
 print("Module root: ", module_root)
 print("Project root: ", project_root)
-print("Data set folder: ", data_set_folder)
+print("'DATA' folder (TFL): ", data_set_folder)
+print("'DATA_TCS' folder (TCS): ", data_tcs)
+print("'DATA_SNT' folder (SNT)" , data_nwt)
+
 
 
 label_to_number_dict = {
@@ -89,6 +101,7 @@ def filterData(label_array, relabel_mapping = relabel_dict, keep_set = keep_set)
     return label_array
 
 
+
 def relabelTranistions(label_array):
     transitionDict = {(8,7): 911, (8,6): 912, (8,1): 913, (7,6): 921, (7,8): 922, (7,1): 923,  (6,8): 931, (6,7): 932
                       , (6,1): 933, (1,8): 941, (1,7): 942, (1,6): 943}
@@ -129,6 +142,9 @@ def relabelTranistions(label_array):
                     transitionCounter = 0
 
     return label_array
+
+
+
 
 csvs_we_are_looking_for = ["labels"]
 
@@ -189,6 +205,13 @@ for key_value_pair in distribution_dict.items():
 print(labeled_distribution_proportion)
 
 
+
+
+
+
+
+
+#Plots the activity distribution for one subject
 def plot_individual(individual):
     index_individual = subject_ids.index(individual)
     # Individual plot
@@ -284,10 +307,204 @@ def plot_distribution_frequency(data):
     autolabel(rects1)
 
 
-plot_distribution_proportion(labeled_distribution_proportion,"")
+def plot_distribution_frequency_and_proportion_SNT(subjects, type_of_plot = "f"):
 
+
+    window_length = 2.399999999999998
+    temperature_reading_rate = 120
+    sampling_frequency = 50
+    samples_pr_second = 1 / (temperature_reading_rate / sampling_frequency)
+    samples_pr_window = int(round(window_length * samples_pr_second))
+
+
+
+
+    if len(subjects) == 1:
+        sensor_config_count = {}
+        protocol = subjects[0][0]
+        subject_id = subjects[0][1]
+
+        if (subject_id == 1):
+            name = "atle"
+        elif (subject_id == 2):
+            name = "vegar"
+
+        if (protocol == "2"):
+            if (name == "atle"):
+                delimitter = ";"
+            else:
+                delimitter = ","
+        else:
+            delimitter = ","
+
+        label_path = os.path.join(data_nwt, "P" + str(protocol) + "_S" + str(subject_id) + "/" + "P" + str(
+            protocol) + "_" + name + "_labels.csv")
+
+        labels = pd.read_csv(label_path, delimiter=";", header=None).as_matrix([0])
+        print(labels)
+        label_windows = segment_labels(labels, samples_pr_window = samples_pr_window,  window_length=window_length, overlap=0.0)
+
+        print(labels)
+        list_configs = []
+        for i in range(0, len(label_windows)):
+            list_configs.append(label_windows[i].tolist()[0])
+        print(list_configs)
+        counter = Counter(list_configs)
+
+
+        print(counter)
+
+
+        save_path = os.path.join(plots_folder, "sensor_config_frequency_P" + str(protocol) + "_S" + str(subject_id) + "_samples_in_window_" + str(samples_pr_window) + "_window_length_" + str(round(window_length, 2)) + "s" + "_"+ type_of_plot + ".png")
+
+    else:
+        total_sensor_counfig_count = []
+        for subject in subjects:
+            print(subject)
+            protocol = subject[0]
+            subject_id = subject[1]
+
+            if (subject_id == 1):
+                name = "atle"
+            elif (subject_id == 2):
+                name = "vegar"
+
+            label_path = os.path.join(data_nwt, "P" + str(protocol) + "_S" + str(subject_id) +"/" + "P" + str(protocol) + "_" + name + "_labels.csv")
+
+            labels = pd.read_csv(label_path, delimiter=";", header=None).as_matrix([0])
+
+            print(label_path)
+
+            label_windows = segment_labels(labels, samples_pr_window = samples_pr_window,  window_length=window_length, overlap=0.0)
+            print(label_windows.shape)
+            this_subject_config_count = []
+            for i in range(0, len(label_windows)):
+                this_subject_config_count.append(label_windows[i].tolist()[0])
+
+
+            total_sensor_counfig_count.append(this_subject_config_count)
+        print(total_sensor_counfig_count)
+        new_list = []
+        for i in range(0,len(total_sensor_counfig_count)):
+            for j in range(0, len(total_sensor_counfig_count[i])):
+                new_list.append(total_sensor_counfig_count[i][j])
+        print(new_list)
+        counter = Counter(new_list)
+        print(counter)
+
+
+
+
+        save_path = os.path.join(plots_folder, "sensor_config_frequency_" + "P2_subjects"+ "_samples_in_window_" + str(samples_pr_window) + "_window_length_" + str(
+                round(window_length, 2)) + "s" + "_" + type_of_plot + ".png")
+
+    total_count = 0
+    for value in counter.values():
+        total_count += value
+
+    print("Length of recording = ", total_count*window_length, " seconds", (total_count*window_length)/60, " minutes")
+
+    print("Total count: ", total_count)
+    y = []
+    x = []
+    for key, value in counter.items():
+
+        if(key == "A"):
+            label = "All (A)"
+        elif(key == "B"):
+            label = "Back (B)"
+        else:
+            label = "Thigh (T)"
+        x.append(label)
+
+        if type_of_plot == "f":
+            y.append(int(value))
+        elif type_of_plot =="p":
+            value = value / total_count
+            y.append(value)
+
+    plt.yscale('log')
+    plt.bar(x, y, log = True)
+    fig, ax = plt.subplots()
+    rects1 = ax.bar(x, y)
+    if(type_of_plot == "f"):
+        plt.ylabel("Frequency\n", fontsize=20, fontweight = "bold")
+    elif(type_of_plot == "p"):
+        plt.ylabel("Proportion\n", fontsize=20, fontweight = "bold")
+        axes = plt.gca()
+        # axes.set_ylim([0, 1])
+        axes.get_yticklines()
+        axes.set_yticks(np.arange(0, 1.1, 0.1))
+
+    plt.xlabel("\n Sensor on", fontsize=20, fontweight = "bold")
+    plt.xticks(rotation=0, fontsize=18)
+    plt.yticks(fontsize = 18)
+
+    fig.set_size_inches(12, 8.5)
+
+    def autolabel(rects):
+        """
+        Attach a text label above each bar displaying its height
+        """
+        for rect in rects:
+            if (type_of_plot == "f"):
+                height = int(rect.get_height())
+                ax.text(rect.get_x() + rect.get_width() / 2., 1.05 * height,
+                        height,
+                        ha='center', va='bottom', fontweight = "bold", fontsize = "17")
+            elif (type_of_plot == "p"):
+                height = float(rect.get_height())
+                ax.text(rect.get_x() + rect.get_width() / 2., 1.05 * height,
+                        '%0.3f' % height,
+                        ha='center', va='bottom', fontsize = "17")
+            print(height)
+
+    autolabel(rects1)
+
+    fig.savefig(save_path)
+    plt.clf()
+
+
+
+def segment_labels(label_data, sampling_rate=1, window_length=120, overlap=0.0, samples_pr_window = 50):
+    #window_samples = int(sampling_rate * window_length)
+    window_samples = samples_pr_window
+    step_size = int(round(window_samples * (1.0 - overlap)))
+    print(step_size)
+    labels = []
+
+    print(label_data.shape[0], step_size)
+    for window_start in np.arange(0, label_data.shape[0], step_size):
+        #print(window_start, label_data.shape[0], step_size)
+        window_start = int(round(window_start))
+        window_end = window_start + int(round(window_samples))
+        if window_end > label_data.shape[0]:
+            break
+        window = label_data[window_start:window_end]
+        #print(window)
+        top = find_majority_activity(window)
+        labels.append(top)
+
+    return np.array(labels)
+
+
+def find_majority_activity(window):
+    sensor_labels_list = window.tolist()
+    labels_without_list = []
+    for sensor_label in sensor_labels_list:
+        labels_without_list.append(sensor_label[0])
+    counts = Counter(labels_without_list)
+    top = counts.most_common(1)[0][0]
+    return top
+
+
+
+
+#plot_distribution_proportion(labeled_distribution_proportion,"")
 #plot_individual('022')
-
-
 #fig = plot.get_figure()
 #fig.savefig("plot.png")
+
+
+
+plot_distribution_frequency_and_proportion_SNT([(1, 1), (1,2)], "p")
